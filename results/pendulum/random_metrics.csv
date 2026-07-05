@@ -1,0 +1,6 @@
+controller,return,upright_frac
+PID (naive),-1403.9,0.017
+Energy+LQR (model-based),-883.9,0.267
+PPO,-430.2,0.915
+SAC,-327.3,1.0
+Model-based + RL residual,-363.0,0.957

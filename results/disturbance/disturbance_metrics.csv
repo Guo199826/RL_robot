@@ -1,0 +1,5 @@
+controller,peak_deviation,recovery_steps,recovered_rate
+Model-based (PD),0.184,5,1.0
+SAC (clean-trained),0.1827,4,1.0
+SAC (push-trained),0.191,4,1.0
+Residual RL (hybrid),0.1831,7,0.75

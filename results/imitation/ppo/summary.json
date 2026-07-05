@@ -1,0 +1,8 @@
+{
+  "algo": "PPO",
+  "task": "FetchPickAndPlace-v4",
+  "after_bc": 0.1,
+  "after_rl": 0.03333333333333333,
+  "timesteps": 60000,
+  "demos_transitions": 5402
+}

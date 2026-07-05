@@ -1,0 +1,25 @@
+controller,delay,rmse,success
+PD (compromise kp=8),0,0.0357,1.0
+PD (compromise kp=8),1,0.0399,1.0
+PD (compromise kp=8),2,0.0449,1.0
+PD (compromise kp=8),3,0.0518,1.0
+PD (compromise kp=8),4,0.0644,0.975
+PD (compromise kp=8),5,0.0793,0.975
+PD (hot kp=15),0,0.0327,1.0
+PD (hot kp=15),1,0.0393,1.0
+PD (hot kp=15),2,0.0515,1.0
+PD (hot kp=15),3,0.0711,0.925
+PD (hot kp=15),4,0.0953,0.925
+PD (hot kp=15),5,0.1149,0.9
+SAC (clean-trained),0,0.0388,1.0
+SAC (clean-trained),1,0.0487,1.0
+SAC (clean-trained),2,0.0662,1.0
+SAC (clean-trained),3,0.0869,1.0
+SAC (clean-trained),4,0.1075,0.925
+SAC (clean-trained),5,0.1269,0.875
+SAC (DR + latency-trained),0,0.0621,0.825
+SAC (DR + latency-trained),1,0.0671,0.925
+SAC (DR + latency-trained),2,0.0781,0.95
+SAC (DR + latency-trained),3,0.0926,0.95
+SAC (DR + latency-trained),4,0.1071,0.9
+SAC (DR + latency-trained),5,0.1242,0.85

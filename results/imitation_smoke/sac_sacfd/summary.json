@@ -1,0 +1,8 @@
+{
+  "algo": "SAC",
+  "task": "FetchPickAndPlace-v4",
+  "after_bc": 0.06666666666666667,
+  "after_rl": 0.03333333333333333,
+  "timesteps": 1500,
+  "demos_transitions": 5339
+}
