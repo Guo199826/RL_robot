@@ -175,10 +175,13 @@ class RLPIDTunerWrapper(gym.Wrapper):
         # PID 的积分和微分状态
         self.integral_error = np.zeros(3)
         self.prev_error = np.zeros(3)
+        # 连续停留在目标半径内的步数（用于稳态奖励）
+        self.in_goal_steps = 0
         
     def reset(self, **kwargs):
         self.integral_error = np.zeros(3)
         self.prev_error = np.zeros(3)
+        self.in_goal_steps = 0
         return self.env.reset(**kwargs)
 
     def step(self, rl_action):
@@ -282,7 +285,8 @@ class ObsNoiseWrapper(gym.ObservationWrapper):
 if __name__ == '__main__':
     # ================= 开始训练 =================
     print("开始训练 RL-Tuned PID 控制器...")
-    base_env = gym.make("FetchReach-v4", reward_type="dense", render_mode="human")
+    # 训练时不渲染，否则 50k 步会被实时窗口拖慢几个数量级
+    base_env = gym.make("FetchReach-v4", reward_type="dense", render_mode=None)
 
     env = RLPIDTunerWrapper(base_env)
 
@@ -307,7 +311,8 @@ if __name__ == '__main__':
     print("训练完成！开始演示 PID 自动调参控制...")
     base_env = gym.make("FetchReach-v4", reward_type="dense", render_mode="human")
     eval_env = RLPIDTunerWrapper(base_env)
-    model = SAC.load("sac_pid_tuner")
+    # 加载本次训练保存的同一个模型（带噪声训练版）
+    model = SAC.load("sac_pid_tuner_noise")
 
     obs, info = eval_env.reset()
     for _ in range(1000):
