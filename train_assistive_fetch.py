@@ -20,7 +20,7 @@ def parse_args():
     parser.add_argument("--render", action="store_true", help="训练时实时渲染仿真环境 (render_mode=human)")
     parser.add_argument("--human_gain", type=float, default=0.6)
     parser.add_argument("--assist_scale", type=float, default=0.5)
-    parser.add_argument("--smoothness_coef", type=float, default=0.05)
+    parser.add_argument("--smoothness_coef", type=float, default=0.3)
     parser.add_argument("--effort_coef", type=float, default=0.05)
     parser.add_argument("--overassist_coef", type=float, default=0.1)
     parser.add_argument("--success_bonus", type=float, default=5.0)

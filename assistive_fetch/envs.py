@@ -12,7 +12,7 @@ def make_assistive_fetch_env(
     wrapper_type="fetchpush_two_stage",
     human_gain=1.0,
     assist_scale=0.15,
-    smoothness_coef=0.05,
+    smoothness_coef=0.3,
     effort_coef=0.05,   
     overassist_coef=0.1,    
     success_bonus=10.0,

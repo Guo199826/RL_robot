@@ -38,9 +38,11 @@ class PlottingCallback(BaseCallback):
         self.all_assist_norm = []
         self.all_human_norm = []
         self.all_full_norm = []
+        self.all_assist_jerk = []
+        self.all_full_jerk = []
 
         # reward 分项（每步 info 里的各项贡献，滑动窗口平滑后记录）
-        self.reward_terms = ["dist_term", "success_term", "assist_cost_term", "stage1_shaping_term"]
+        self.reward_terms = ["dist_term", "success_term", "assist_cost_term", "smoothness_term"]
         self.all_reward_terms = {term: [] for term in self.reward_terms}
 
         # 算法内部指标（loss 记录点可能与主指标不同步，单独存 step）
@@ -55,6 +57,8 @@ class PlottingCallback(BaseCallback):
         self._assist_buf = deque(maxlen=window)
         self._human_buf = deque(maxlen=window)
         self._full_buf = deque(maxlen=window)
+        self._assist_jerk_buf = deque(maxlen=window)
+        self._full_jerk_buf = deque(maxlen=window)
         self._reward_term_bufs = {term: deque(maxlen=window) for term in self.reward_terms}
 
         plt.ion()
@@ -77,6 +81,10 @@ class PlottingCallback(BaseCallback):
                 self._human_buf.append(float(info["human_action_norm"]))
             if "full_action_norm" in info:
                 self._full_buf.append(float(info["full_action_norm"]))
+            if "assist_jerk" in info:
+                self._assist_jerk_buf.append(float(info["assist_jerk"]))
+            if "full_jerk" in info:
+                self._full_jerk_buf.append(float(info["full_jerk"]))
             for term in self.reward_terms:
                 key = f"assist_reward/{term}"
                 if key in info:
@@ -100,6 +108,8 @@ class PlottingCallback(BaseCallback):
                 self.all_assist_norm.append(np.mean(self._assist_buf) if self._assist_buf else np.nan)
                 self.all_human_norm.append(np.mean(self._human_buf) if self._human_buf else np.nan)
                 self.all_full_norm.append(np.mean(self._full_buf) if self._full_buf else np.nan)
+                self.all_assist_jerk.append(np.mean(self._assist_jerk_buf) if self._assist_jerk_buf else np.nan)
+                self.all_full_jerk.append(np.mean(self._full_jerk_buf) if self._full_jerk_buf else np.nan)
 
                 for term in self.reward_terms:
                     buf = self._reward_term_bufs[term]
@@ -199,7 +209,7 @@ class PlottingCallback(BaseCallback):
                 "dist_term": "tab:orange",
                 "success_term": "tab:green",
                 "assist_cost_term": "tab:red",
-                "stage1_shaping_term": "tab:purple",
+                "smoothness_term": "tab:purple",
             }
             for term in self.reward_terms:
                 ys = self.all_reward_terms[term]
@@ -213,8 +223,25 @@ class PlottingCallback(BaseCallback):
             ax.legend(loc="best", fontsize=8)
             ax.grid(True, alpha=0.3)
 
+        # [2,1] Jerk（动作逐步变化量，越小越平滑）
+        if any(not np.all(np.isnan(x)) for x in (self.all_assist_jerk, self.all_full_jerk) if x):
+            ax = self.axes[2, 1]
+            if self.all_assist_jerk:
+                ax.plot(self.all_steps, self.all_assist_jerk, "b-", linewidth=2, label="‖Δassist‖")
+            if self.all_full_jerk:
+                ax.plot(self.all_steps, self.all_full_jerk, "g:", linewidth=2, label="‖Δfull‖")
+            title = "Action Jerk (per-step change, lower=smoother)"
+            if self.all_assist_jerk and not np.isnan(self.all_assist_jerk[-1]):
+                title += f"  ‖Δassist‖={self.all_assist_jerk[-1]:.3f}"
+            ax.set_title(title)
+            ax.set_xlabel("Timesteps")
+            ax.set_ylabel("Action Delta Norm")
+            ax.legend(loc="best")
+            ax.grid(True, alpha=0.3)
+        else:
+            self.axes[2, 1].axis("off")
+
         # 关闭未使用的子图
-        self.axes[2, 1].axis("off")
         self.axes[2, 2].axis("off")
 
         plt.tight_layout()

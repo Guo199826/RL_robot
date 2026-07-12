@@ -8,7 +8,7 @@ from stable_baselines3 import SAC
 
 from assistive_fetch.envs import make_assistive_fetch_env
 
-REWARD_TERMS = ("dist_term", "success_term", "assist_cost_term", "stage1_shaping_term")
+REWARD_TERMS = ("dist_term", "success_term", "assist_cost_term", "smoothness_term")
 PHASE_LABELS = {0: "lift", 1: "approach", 2: "descend", 3: "push"}
 
 
@@ -19,6 +19,8 @@ class EpisodeStats:
     mean_assist_norm: float = 0.0
     mean_human_norm: float = 0.0
     mean_full_norm: float = 0.0
+    mean_assist_jerk: float = 0.0
+    mean_full_jerk: float = 0.0
     phase_entries: dict = field(default_factory=lambda: {0: 0, 1: 0, 2: 0, 3: 0})
     return_: float = 0.0
     steps: int = 0
@@ -128,6 +130,8 @@ def run_episode(env, policy_fn, *, seed=None, verbose=False, ep_idx=None):
     assist_norms = []
     human_norms = []
     full_norms = []
+    assist_jerks = []
+    full_jerks = []
     reward_term_steps = {term: [] for term in REWARD_TERMS}
     phase_entries = {0: 0, 1: 0, 2: 0, 3: 0}
     prev_phase = None
@@ -144,6 +148,8 @@ def run_episode(env, policy_fn, *, seed=None, verbose=False, ep_idx=None):
         assist_norms.append(info.get("assist_action_norm", 0.0))
         human_norms.append(info.get("human_action_norm", 0.0))
         full_norms.append(info.get("full_action_norm", 0.0))
+        assist_jerks.append(info.get("assist_jerk", 0.0))
+        full_jerks.append(info.get("full_jerk", 0.0))
         for term in REWARD_TERMS:
             reward_term_steps[term].append(info.get(f"assist_reward/{term}", 0.0))
 
@@ -165,6 +171,8 @@ def run_episode(env, policy_fn, *, seed=None, verbose=False, ep_idx=None):
         mean_assist_norm=float(np.mean(assist_norms)) if assist_norms else 0.0,
         mean_human_norm=float(np.mean(human_norms)) if human_norms else 0.0,
         mean_full_norm=float(np.mean(full_norms)) if full_norms else 0.0,
+        mean_assist_jerk=float(np.mean(assist_jerks)) if assist_jerks else 0.0,
+        mean_full_jerk=float(np.mean(full_jerks)) if full_jerks else 0.0,
         phase_entries=phase_entries,
         return_=ep_ret,
         steps=steps,
@@ -220,6 +228,8 @@ def summarize(episodes):
     final_dists = np.array([e.final_dist for e in episodes], dtype=np.float64)
     assist = np.array([e.mean_assist_norm for e in episodes], dtype=np.float64)
     human = np.array([e.mean_human_norm for e in episodes], dtype=np.float64)
+    assist_jerk = np.array([e.mean_assist_jerk for e in episodes], dtype=np.float64)
+    full_jerk = np.array([e.mean_full_jerk for e in episodes], dtype=np.float64)
     returns = np.array([e.return_ for e in episodes], dtype=np.float64)
     steps = np.array([e.steps for e in episodes], dtype=np.float64)
 
@@ -250,6 +260,10 @@ def summarize(episodes):
         "assist_norm_std": float(np.std(assist)),
         "human_norm_mean": float(np.mean(human)),
         "human_norm_std": float(np.std(human)),
+        "assist_jerk_mean": float(np.mean(assist_jerk)),
+        "assist_jerk_std": float(np.std(assist_jerk)),
+        "full_jerk_mean": float(np.mean(full_jerk)),
+        "full_jerk_std": float(np.std(full_jerk)),
         "return_mean": float(np.mean(returns)),
         "return_std": float(np.std(returns)),
         "steps_mean": float(np.mean(steps)),
@@ -295,6 +309,16 @@ def print_summary(summary, title="Evaluation summary"):
         f"Human effort:     mean={summary['human_norm_mean']:.4f}  "
         f"std={summary['human_norm_std']:.4f}  "
         f"(‖human_intent‖ per step)"
+    )
+    print(
+        f"Assist jerk:      mean={summary['assist_jerk_mean']:.4f}  "
+        f"std={summary['assist_jerk_std']:.4f}  "
+        f"(‖Δscaled_assist‖ per step)"
+    )
+    print(
+        f"Full jerk:        mean={summary['full_jerk_mean']:.4f}  "
+        f"std={summary['full_jerk_std']:.4f}  "
+        f"(‖Δfull_action‖ per step)"
     )
     print(
         f"Episode return:   mean={summary['return_mean']:.2f}  "
@@ -372,6 +396,8 @@ def print_outcome_analysis(outcome_split, title="Outcome analysis"):
     row("Final dist (m)", s["final_dist_mean"], f["final_dist_mean"])
     row("Assist effort", s["assist_norm_mean"], f["assist_norm_mean"])
     row("Human effort", s["human_norm_mean"], f["human_norm_mean"])
+    row("Assist jerk", s["assist_jerk_mean"], f["assist_jerk_mean"])
+    row("Full jerk", s["full_jerk_mean"], f["full_jerk_mean"])
     row("Episode return", s["return_mean"], f["return_mean"], digits=2)
 
     print("")
@@ -427,6 +453,7 @@ def print_comparison(assist_summary, human_summary):
         ("Final dist (m)", *_delta("final_dist_mean", better="low")),
         ("Human effort", *_delta("human_norm_mean", better="low")),
         ("Assist effort", *_delta("assist_norm_mean", better="high")),
+        ("Full jerk", *_delta("full_jerk_mean", better="low")),
         ("Episode return", *_delta("return_mean", better="high")),
     ]
 

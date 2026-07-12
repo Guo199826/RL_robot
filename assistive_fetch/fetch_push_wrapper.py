@@ -9,7 +9,7 @@ class FetchPushTwoStageAssistiveWrapper(AssistiveSharedControlWrapper):
         env,
         human_gain=1.0,
         assist_scale=0.15,
-        smoothness_coef=0.05,
+        smoothness_coef=0.3,
         effort_coef=0.05,
         overassist_coef=0.1,
         success_bonus=10.0,
@@ -179,8 +179,12 @@ class FetchPushTwoStageAssistiveWrapper(AssistiveSharedControlWrapper):
         dist_term = -self.dist_weight * dist
         success_term = self.success_bonus * success
         assist_cost_term = -self.assist_cost_coef * np.linalg.norm(scaled_assist)
+        # penalize change in assist action between steps to encourage smoother assistance
+        assist_jerk = np.linalg.norm(scaled_assist - self.prev_assist_action)
+        full_jerk = np.linalg.norm(full_action - self.last_full_action)
+        smoothness_term = -self.smoothness_coef * assist_jerk
 
-        reward = dist_term + success_term + assist_cost_term
+        reward = dist_term + success_term + assist_cost_term + smoothness_term
 
         info["assist_reward/dist"] = float(dist)
         info["assist_reward/success"] = float(success)
@@ -188,10 +192,12 @@ class FetchPushTwoStageAssistiveWrapper(AssistiveSharedControlWrapper):
         info["assist_reward/dist_term"] = float(dist_term)
         info["assist_reward/success_term"] = float(success_term)
         info["assist_reward/assist_cost_term"] = float(assist_cost_term)
-        info["assist_reward/stage1_shaping_term"] = 0.0
+        info["assist_reward/smoothness_term"] = float(smoothness_term)
         info["assist_action_norm"] = float(np.linalg.norm(scaled_assist))
         info["human_action_norm"] = float(np.linalg.norm(human_action))
         info["full_action_norm"] = float(np.linalg.norm(full_action))
+        info["assist_jerk"] = float(assist_jerk)
+        info["full_jerk"] = float(full_jerk)
 
         for k, v in self.debug_info.items():
             info[k] = v
